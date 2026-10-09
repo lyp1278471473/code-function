@@ -11,6 +11,22 @@ An **Agent Skill** that maps every feature of a project to the code implementing
 self-contained, offline HTML file. Works with opencode, Claude Code, Codex, Cursor, Gemini CLI and
 any agent supporting the [SKILL.md](https://opencode.ai/docs/skills) format.
 
+[English](README.en.md) · [在线示例 / example](examples/)
+
+## 效果预览
+
+**功能地图** — 功能点卡片默认折叠，点击展开跨栈代码，点代码行用编辑器打开：
+
+![功能地图](examples/screenshots/features.png)
+
+**架构图** — 力导向模块依赖网络（节点可拖动）：
+
+![架构图](examples/screenshots/architecture.png)
+
+**文件浏览器** — 代码量冰柱图，按目录下钻：
+
+![文件浏览器](examples/screenshots/explorer.png)
+
 ---
 
 ## 它解决什么问题

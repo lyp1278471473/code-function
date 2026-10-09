@@ -1,0 +1,7 @@
+{
+  "repo": "examples/demo-app",
+  "title": "demo-app",
+  "subtitle": "全栈示例 · feature-to-code map",
+  "features": "demo-app/features.json",
+  "out": "screenshots/demo-map.html"
+}
