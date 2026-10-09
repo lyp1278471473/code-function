@@ -32,8 +32,8 @@ Everything here is original work (see `LICENSE`); no third-party code is vendore
 ## Pipeline
 
 ```
-repo ─► analyze.mjs ─► analysis.json      (files, LOC, languages, stacks, modules,
-                    │                      dependency edges, entry points, git, coverage)
+repo ─► analyze.mjs ─► analysis-summary.json  (small; for the agent to read)
+                    └► analysis.json          (full; LOC trees etc. — trimmed before embed)
 config ─────────────┤
 features.json ──────┼─► render.mjs ─► <name>-map.html   (self-contained, offline)
 facets.json ────────┤
@@ -62,16 +62,19 @@ Never reuse example names; derive features from the actual code. First get raw m
 ```bash
 node <skill-dir>/scripts/analyze.mjs <repo> --out code-function-out/analysis.json --config code-function-out/map-config.json
 ```
-This writes `analysis.json` with stacks, candidate entry points (pages, routes, Spring/Express/
-FastAPI handlers, cloud-function actions, CLI commands, jobs), per-file purpose buckets
-(`filesByPurpose`), and — if `features.json` exists — a `coverage` block listing files not yet
-claimed by any feature.
+This writes two files:
+- `analysis-summary.json` — **read this one.** Small (a few hundred KB even on huge repos): stacks,
+  candidate entry points (pages, routes, Spring/Express/FastAPI handlers, cloud-function actions,
+  CLI commands, jobs), `purposeCounts`, and — if `features.json` exists — a `coverage` block listing
+  files not yet claimed by any feature.
+- `analysis.json` — the full data (per-file list, all entry points, LOC trees). Only read it with
+  targeted tooling (grep/jq), never wholesale: it can be several MB on large repos.
 
 Read the code and turn that into the project's feature list:
 - **Granularity:** a thing a user would name and click (a page, screen, command, API workflow).
   Use the project's own vocabulary (README/docs/menus). Aim for 10–40 features, not one per function.
 - **Sources:** routes/pages/screens; backend actions/services; DB schema/migrations; workers/jobs.
-- Every entry point from `analysis.json` should map to a feature or be deliberately classified as
+- Every entry point from `analysis-summary.json` should map to a feature or be deliberately classified as
   infrastructure.
 
 ### 2b. Attribute code → features (coverage)
@@ -108,7 +111,7 @@ repo-relative; `lines` is `"start-end"` or a single number (1-based). See
 ```bash
 node <skill-dir>/scripts/render.mjs code-function-out/map-config.json
 ```
-Runs `analyze.mjs` automatically if `analysis.json` is missing, then writes `cfg.out`.
+Runs `analyze.mjs` automatically if `analysis-summary.json` is missing, then writes `cfg.out`.
 
 ### 6. Verify (mandatory)
 Open the HTML (or `python3 -m http.server` in the workspace). Check zero console errors, Features

@@ -313,8 +313,6 @@ function purpose(rel) {
   return "app";
 }
 const filesForCoverage = files.map((f) => ({ path: f.path, loc: f.loc, purpose: purpose(f.path) }));
-const byPurpose = {};
-for (const f of filesForCoverage) (byPurpose[f.purpose] ||= []).push(f.path);
 
 /* ---------------------------------------------------------------- git */
 let git = {};
@@ -344,6 +342,9 @@ if (featPath) {
 }
 
 /* --------------------------------------------------------------- output */
+const purposeCounts = {};
+for (const f of filesForCoverage) purposeCounts[f.purpose] = (purposeCounts[f.purpose] || 0) + 1;
+
 const analysis = {
   schema: "codefunction/analysis@1",
   generatedAt: new Date().toISOString(),
@@ -355,11 +356,29 @@ const analysis = {
   modules,
   edges,
   entryPoints,
+  purposeCounts,
   files: filesForCoverage,
-  filesByPurpose: byPurpose,
   coverage,
 };
 
-const text = JSON.stringify(analysis, null, 2);
-if (OUT) { fs.writeFileSync(path.resolve(OUT), text); console.error(`analyze: ${OUT} (${totals.files} files, ${totals.loc} loc, ${modules.length} modules, ${entryPoints.length} entries)`); }
-else console.log(text);
+// Compact JSON: no indentation. On large repos this keeps analysis.json ~2x smaller
+// (it's machine-read, not hand-edited). A small summary is written alongside for agents.
+const text = JSON.stringify(analysis);
+if (OUT) {
+  fs.writeFileSync(path.resolve(OUT), text);
+  const summary = {
+    schema: "codefunction/summary@1",
+    root: ROOT,
+    git,
+    totals,
+    languages: languages.slice(0, 12),
+    stacks: [...stacks],
+    modules: modules.map((m) => ({ id: m.id, path: m.path, kind: m.kind, loc: m.loc, files: m.files, deps: m.deps })),
+    purposeCounts,
+    entryPointsByKind: entryPoints.reduce((a, e) => ((a[e.kind] = (a[e.kind] || 0) + 1), a), {}),
+    entryPoints,
+    coverage,
+  };
+  fs.writeFileSync(path.resolve(OUT).replace(/analysis\.json$/, "analysis-summary.json"), JSON.stringify(summary, null, 2));
+  console.error(`analyze: ${OUT} (${totals.files} files, ${totals.loc} loc, ${modules.length} modules, ${entryPoints.length} entries)`);
+} else console.log(text);

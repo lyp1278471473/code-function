@@ -47,6 +47,21 @@ if (!commit) {
   try { commit = execFileSync("git", ["-C", REPO, "rev-parse", "--short", "HEAD"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim(); } catch { /* not git */ }
 }
 
+// The viewer only needs a small slice of the analysis. The full file lists,
+// per-purpose buckets and entry points are for the agent, not the HTML — embedding
+// them ballooned output to multiple MB on large repos (slow to open). Keep the
+// artifact lean: totals, languages, modules (with LOC trees) and edges.
+const scan = {
+  totals: analysis.totals,
+  languages: analysis.languages,
+  stacks: analysis.stacks,
+  modules: (analysis.modules || []).map((m) => ({
+    id: m.id, path: m.path, kind: m.kind, loc: m.loc, files: m.files,
+    deps: m.deps, dependedBy: m.dependedBy, tree: m.tree,
+  })),
+  edges: analysis.edges || [],
+};
+
 const embed = {
   schema: "codefunction/embed@1",
   title: cfg.title || path.basename(REPO),
@@ -56,7 +71,7 @@ const embed = {
   commitDate,
   branch: cfg.branch || analysis.git?.branch || "",
   repoRoot: REPO,
-  scan: analysis,
+  scan,
   meta: meta || {},
   facets: facets?.facets ?? [],
   features: features?.features ?? [],
