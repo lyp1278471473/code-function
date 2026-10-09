@@ -1,4 +1,4 @@
-# code-map
+# code-function
 
 Turn any project into **one self-contained, offline HTML file** that answers:
 *which code implements this feature?*
@@ -31,21 +31,21 @@ Requires Node.js 18+. No dependencies.
 ## Use
 
 1. Copy this directory into your agent's skills folder, e.g.
-   `~/.config/opencode/skills/code-map/` or `~/.claude/skills/code-map/`.
-2. Ask your agent to run **code-map** on a repository, or run the scripts directly:
+   `~/.config/opencode/skills/code-function/` or `~/.claude/skills/code-function/`.
+2. Ask your agent to run **code-function** on a repository, or run the scripts directly:
 
 ```bash
-mkdir -p code-map-out
-cat > code-map-out/map-config.json <<'EOF'
+mkdir -p code-function-out
+cat > code-function-out/map-config.json <<'EOF'
 { "repo": "/abs/path/to/repo", "title": "my-repo", "out": "my-repo-map.html" }
 EOF
 
-node scripts/analyze.mjs /abs/path/to/repo --out code-map-out/analysis.json
-# author code-map-out/features.json  (see references/features-schema.md)
-node scripts/render.mjs code-map-out/map-config.json
+node scripts/analyze.mjs /abs/path/to/repo --out code-function-out/analysis.json
+# author code-function-out/features.json  (see references/features-schema.md)
+node scripts/render.mjs code-function-out/map-config.json
 ```
 
-Open `code-map-out/my-repo-map.html` in a browser.
+Open `code-function-out/my-repo-map.html` in a browser.
 
 ## Output
 

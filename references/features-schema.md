@@ -1,6 +1,6 @@
 # features.json — schema and writing guide
 
-The Features page is the point of code-map. Its content is `features.json` in the map workspace.
+The Features page is the point of code-function. Its content is `features.json` in the map workspace.
 
 ## Shape
 

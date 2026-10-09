@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// code-map — render.mjs
+// code-function — render.mjs
 // Merge analysis + features + facets + meta into one self-contained HTML viewer.
 // Original work. Reads analysis.json (from analyze.mjs), injects a single JSON
 // payload into assets/viewer.html, and writes the final offline map.
@@ -48,7 +48,7 @@ if (!commit) {
 }
 
 const embed = {
-  schema: "codemap/embed@1",
+  schema: "codefunction/embed@1",
   title: cfg.title || path.basename(REPO),
   subtitle: cfg.subtitle || "",
   generated: new Date().toISOString().slice(0, 10),
@@ -64,9 +64,9 @@ const embed = {
 
 const tplPath = path.join(here, "..", "assets", "viewer.html");
 const template = fs.readFileSync(tplPath, "utf8");
-if (!template.includes("__CODEMAP_DATA__")) { console.error("render: viewer template missing __CODEMAP_DATA__ placeholder"); process.exit(1); }
+if (!template.includes("__CODEFUNCTION_DATA__")) { console.error("render: viewer template missing __CODEFUNCTION_DATA__ placeholder"); process.exit(1); }
 const safe = (s) => s.replace(/<\/script/gi, "<\\/script");
-const html = template.replace("__CODEMAP_DATA__", () => safe(JSON.stringify(embed)));
+const html = template.replace("__CODEFUNCTION_DATA__", () => safe(JSON.stringify(embed)));
 const outPath = path.resolve(workDir, cfg.out || `${embed.title}-map.html`);
 fs.writeFileSync(outPath, html);
 console.error(`render: ${outPath} (${Math.round(html.length / 1024)}KB${commit ? `, ${commit} @ ${commitDate}` : ""}, ${embed.features.length} features, ${((analysis.modules) || []).length} modules)`);

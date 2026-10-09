@@ -1,4 +1,4 @@
-# code-map v2 — 设计文档（Clean-room 重写）
+# code-function v2 — 设计文档（Clean-room 重写）
 
 目标：**完全原创**（不复制 codebase-map 任何代码/文本）、**保留全部功能**（Features 功能点定位
 + 点击跳转 + Architecture 架构图 + File explorer 树图 + facet 扩展页），可作为独立作品署名。
@@ -36,7 +36,7 @@ meta.json（可选模块描述）──────────┘
 ### analysis.json
 ```jsonc
 {
-  "schema": "codemap/analysis@1",
+  "schema": "codefunction/analysis@1",
   "generatedAt": "ISO",
   "root": "/abs/repo",
   "git": { "commit": "abc1234", "date": "2026-10-08", "branch": "main" },
@@ -79,7 +79,7 @@ meta.json（可选模块描述）──────────┘
 ## 5. 文件清单
 
 ```
-code-map/
+code-function/
   SKILL.md
   LICENSE                     # 你的署名
   scripts/analyze.mjs         # 扫描：stats / modules / deps / entries / loc-tree / git / coverage

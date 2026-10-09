@@ -1,12 +1,12 @@
 ---
-name: code-map
-description: "Turn any project into one self-contained interactive HTML map that answers: which code implements this feature/page? Show every feature of the project, and for each, all the code across frontend/backend/database/workers with exact file:line — clickable to open in the user's editor. Use when the user says 'code-map', '功能地图', '这个功能对应哪段代码', '生成功能地图', 'locate the code for <feature>', or asks to map features/pages to their implementation. Also use to refresh a map generated earlier."
+name: code-function
+description: "Turn any project into one self-contained interactive HTML map that answers: which code implements this feature/page? Show every feature of the project, and for each, all the code across frontend/backend/database/workers with exact file:line — clickable to open in the user's editor. Use when the user says 'code-function', '功能地图', '这个功能对应哪段代码', '生成功能地图', 'locate the code for <feature>', or asks to map features/pages to their implementation. Also use to refresh a map generated earlier."
 metadata:
   version: 2.0.0
   license: MIT
 ---
 
-# code-map
+# code-function
 
 Turn any project into **one self-contained, offline HTML file** that answers the recurring
 question: *"I see a feature — where is the code that implements it?"*
@@ -42,13 +42,13 @@ Two scripts, two inputs you author, one artifact.
 
 ## Procedure
 
-Work in a **map workspace** (default `code-map-out/`).
+Work in a **map workspace** (default `code-function-out/`).
 
 ### 1. Workspace + config
 ```bash
-mkdir -p code-map-out
+mkdir -p code-function-out
 ```
-`code-map-out/map-config.json`:
+`code-function-out/map-config.json`:
 ```json
 { "repo": "/abs/path/to/repo", "title": "repo-name", "subtitle": "what it is", "out": "repo-name-map.html" }
 ```
@@ -58,7 +58,7 @@ Optional: `branch`, `extensions`, `ignoreDirs`, `excludeRel`, `modules`, `edges`
 ### 2. Enumerate THIS project's features (the core work)
 Never reuse example names; derive features from the actual code. First get raw material:
 ```bash
-node <skill-dir>/scripts/analyze.mjs <repo> --out code-map-out/analysis.json --config code-map-out/map-config.json
+node <skill-dir>/scripts/analyze.mjs <repo> --out code-function-out/analysis.json --config code-function-out/map-config.json
 ```
 This writes `analysis.json` with stacks, candidate entry points (pages, routes, Spring/Express/
 FastAPI handlers, cloud-function actions, CLI commands, jobs), per-file purpose buckets
@@ -104,7 +104,7 @@ repo-relative; `lines` is `"start-end"` or a single number (1-based). See
 
 ### 5. Render
 ```bash
-node <skill-dir>/scripts/render.mjs code-map-out/map-config.json
+node <skill-dir>/scripts/render.mjs code-function-out/map-config.json
 ```
 Runs `analyze.mjs` automatically if `analysis.json` is missing, then writes `cfg.out`.
 
@@ -115,7 +115,7 @@ render. Fix `features.json` and re-render if needed.
 
 ### 7. Hand off
 Report the artifact path. Refresh after code changes:
-`node <skill-dir>/scripts/render.mjs code-map-out/map-config.json` (re-run `analyze.mjs` with the
+`node <skill-dir>/scripts/render.mjs code-function-out/map-config.json` (re-run `analyze.mjs` with the
 existing `analysis.json` deleted to rescan). `features.json` line numbers are hand-maintained and
 drift as code changes — re-verify the features you care about.
 
@@ -136,5 +136,5 @@ drift as code changes — re-verify the features you care about.
 
 Standard `SKILL.md`; works with any agent that supports it (opencode, Claude Code, Codex, Cursor,
 Gemini CLI…). Install the directory at the agent's skills path, e.g.
-`~/.config/opencode/skills/code-map/`, `~/.claude/skills/code-map/`, `~/.agents/skills/code-map/`.
+`~/.config/opencode/skills/code-function/`, `~/.claude/skills/code-function/`, `~/.agents/skills/code-function/`.
 Requires Node.js 18+.

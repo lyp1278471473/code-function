@@ -3,10 +3,18 @@ node_modules/
 .DS_Store
 
 # local map workspaces / generated output
-code-map-out/
-*-map.html
+code-function-out/
+*-function.html
 analysis.json
 *.env
 .env
 .env.*
 zhixu-analysis.json
+
+# example workspace inputs/outputs used while testing the skill
+map-config.json
+features.json
+facets.json
+meta.json
+analysis.json
+*-map.html

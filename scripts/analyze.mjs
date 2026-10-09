@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// code-map — analyze.mjs
-// One-pass static analysis of a repository for the code-map viewer.
+// code-function — analyze.mjs
+// One-pass static analysis of a repository for the code-function viewer.
 // Original work. Emits analysis.json consumed by render.mjs.
 //
 // usage: node analyze.mjs <repo> [--out analysis.json] [--config map-config.json]
@@ -328,7 +328,7 @@ let coverage = { note: "no features.json found; write one, then re-run analyze t
 const featCandidates = [
   cfg.features ? path.resolve(cfg.features) : null,
   path.join(process.cwd(), "features.json"),
-  path.join(ROOT, "code-map-out", "features.json"),
+  path.join(ROOT, "code-function-out", "features.json"),
 ].filter(Boolean);
 const featPath = featCandidates.find((p) => fs.existsSync(p));
 if (featPath) {
@@ -345,7 +345,7 @@ if (featPath) {
 
 /* --------------------------------------------------------------- output */
 const analysis = {
-  schema: "codemap/analysis@1",
+  schema: "codefunction/analysis@1",
   generatedAt: new Date().toISOString(),
   root: ROOT,
   git,
