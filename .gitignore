@@ -1,0 +1,12 @@
+node_modules/
+*.log
+.DS_Store
+
+# local map workspaces / generated output
+code-map-out/
+*-map.html
+analysis.json
+*.env
+.env
+.env.*
+zhixu-analysis.json

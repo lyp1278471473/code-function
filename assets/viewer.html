@@ -1,0 +1,632 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>code-map</title>
+<style>
+/* ============================================================
+   code-map — original viewer
+   ============================================================ */
+:root {
+  color-scheme: light;
+  --bg: #f7f7f4;
+  --surface: #ffffff;
+  --surface-2: #f0f0ea;
+  --line: #e3e3db;
+  --ink: #16161a;
+  --ink-2: #55555e;
+  --ink-3: #8d8d96;
+  --accent: #4f46e5;
+  --accent-soft: #eeecff;
+  --shadow: 0 1px 2px rgba(20,20,30,.06), 0 4px 14px rgba(20,20,30,.05);
+  --radius: 12px;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code", Menlo, Consolas, monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  /* categorical palette (adjacent-hue separated, works light+dark) */
+  --c1: #4f46e5; --c2: #0d9488; --c3: #ca8a04; --c4: #16a34a;
+  --c5: #9333ea; --c6: #dc2626; --c7: #db2777; --c8: #ea580c;
+  --c9: #0284c7; --c10:#65a30d; --c-other:#9aa0a6;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg:#0f1013; --surface:#17181c; --surface-2:#1f2026; --line:#2a2b31;
+    --ink:#f4f4f6; --ink-2:#b8b8c0; --ink-3:#7e7e88; --accent:#8b83ff; --accent-soft:#241f4d;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 6px 20px rgba(0,0,0,.35);
+    --c1:#8b83ff; --c2:#2dd4bf; --c3:#eab308; --c4:#4ade80; --c5:#c084fc; --c6:#f87171; --c7:#f472b6; --c8:#fb923c; --c9:#38bdf8; --c10:#a3e635; --c-other:#6b7280;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg:#0f1013; --surface:#17181c; --surface-2:#1f2026; --line:#2a2b31;
+  --ink:#f4f4f6; --ink-2:#b8b8c0; --ink-3:#7e7e88; --accent:#8b83ff; --accent-soft:#241f4d;
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 6px 20px rgba(0,0,0,.35);
+  --c1:#8b83ff; --c2:#2dd4bf; --c3:#eab308; --c4:#4ade80; --c5:#c084fc; --c6:#f87171; --c7:#f472b6; --c8:#fb923c; --c9:#38bdf8; --c10:#a3e635; --c-other:#6b7280;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 14px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
+button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+.shell { max-width: 1520px; margin: 0 auto; padding: 0 26px; }
+.mono { font-family: var(--mono); }
+
+/* header */
+.top { border-bottom: 1px solid var(--line); background: var(--surface); }
+.top .bar { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; padding: 26px 0 18px; flex-wrap: wrap; }
+.top .eyebrow { font-family: var(--mono); font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--accent); }
+.top h1 { font-family: var(--mono); font-size: clamp(22px, 3vw, 34px); font-weight: 650; letter-spacing: -.02em; margin-top: 6px; }
+.top h1 .muted { color: var(--ink-3); font-weight: 400; }
+.top .right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.theme-btn { font-family: var(--mono); font-size: 11px; border: 1px solid var(--line); border-radius: 999px; padding: 5px 13px; color: var(--ink-2); background: var(--surface); }
+.theme-btn:hover { border-color: var(--ink-3); color: var(--ink); }
+.snapshot { font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
+.summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; border-top: 1px solid var(--line); }
+.summary .stat { padding: 14px 18px; border-left: 1px solid var(--line); }
+.summary .stat:first-child { border-left: none; padding-left: 0; }
+.summary .v { font-family: var(--mono); font-size: 24px; font-weight: 600; letter-spacing: -.02em; }
+.summary .l { font-size: 11px; color: var(--ink-2); margin-top: 1px; }
+.summary .s { font-family: var(--mono); font-size: 10px; color: var(--ink-3); }
+@media (max-width: 820px) { .summary { grid-template-columns: repeat(2, 1fr); } }
+
+nav.tabs { display: flex; gap: 0; overflow-x: auto; border-top: 1px solid var(--line); }
+nav.tabs button { font-family: var(--mono); font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); padding: 12px 16px 10px; border-bottom: 2px solid transparent; white-space: nowrap; }
+nav.tabs button:hover { color: var(--ink); }
+nav.tabs button[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); }
+
+main { padding: 24px 0 64px; }
+section.view { display: none; }
+section.view.on { display: block; animation: fade .22s ease; }
+@keyframes fade { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+.view-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 14px; flex-wrap: wrap; }
+.view-head h2 { font-family: var(--mono); font-size: 15px; font-weight: 600; }
+.view-head .sub { font-size: 12.5px; color: var(--ink-2); }
+
+/* ---------- features ---------- */
+.toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+.toolbar input[type=search] { font-family: var(--mono); font-size: 12.5px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 9px; padding: 9px 12px; min-width: 260px; flex: 1; max-width: 440px; }
+.toolbar input:focus { outline: none; border-color: var(--accent); }
+.toolbar select { font-family: var(--mono); font-size: 12px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 9px; padding: 9px 10px; }
+.pill { font-family: var(--mono); font-size: 11px; color: var(--ink-2); border: 1px solid var(--line); border-radius: 999px; padding: 4px 11px; background: var(--surface); }
+.hint { flex-basis: 100%; font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); }
+.fgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 14px; align-items: start; }
+.fcard { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 15px 17px 17px; box-shadow: var(--shadow); }
+.fcard h3 { font-family: var(--mono); font-size: 14px; font-weight: 650; }
+.fcard .dom { font-family: var(--mono); font-size: 9.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin: 3px 0 7px; }
+.fcard .desc { font-size: 12.5px; color: var(--ink-2); margin-bottom: 11px; }
+.frow { display: grid; grid-template-columns: auto minmax(0,1fr) auto; gap: 8px; align-items: baseline; padding: 6px 0; border-top: 1px dashed var(--line); }
+.frow:first-of-type { border-top: none; }
+.layer { font-family: var(--mono); font-size: 8.5px; letter-spacing: .07em; text-transform: uppercase; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--bc, var(--ink-3)); color: var(--bc, var(--ink-3)); white-space: nowrap; }
+.frow .loc { font-family: var(--mono); font-size: 11.5px; color: var(--ink); overflow-wrap: anywhere; }
+.frow .loc .ln { color: var(--accent); }
+.frow .note { color: var(--ink-3); }
+.frow a.open { color: inherit; text-decoration: none; border-bottom: 1px dashed var(--line); }
+.frow a.open:hover { color: var(--accent); border-bottom-color: var(--accent); }
+.goto { font-family: var(--mono); font-size: 9px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); border: 1px solid var(--line); border-radius: 999px; padding: 1px 7px; white-space: nowrap; }
+.goto:hover { color: var(--accent); border-color: var(--accent); }
+.tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 9px; }
+.tags span { font-family: var(--mono); font-size: 10px; color: var(--ink-3); background: var(--surface-2); border-radius: 6px; padding: 1px 7px; }
+.empty { color: var(--ink-3); font-size: 12.5px; padding: 22px 0; }
+
+/* ---------- architecture ---------- */
+.arch { display: grid; grid-template-columns: minmax(0,1fr) 340px; gap: 18px; align-items: start; }
+@media (max-width: 1080px) { .arch { grid-template-columns: 1fr; } }
+.graphwrap { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: auto; box-shadow: var(--shadow); }
+#graph { position: relative; min-width: 780px; }
+#graph svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+#graph svg path { fill: none; stroke: var(--ink-3); stroke-width: 1; opacity: .22; transition: .15s; }
+#graph.hot svg path { opacity: .04; }
+#graph.hot svg path.in { stroke: var(--c1); stroke-width: 1.7; opacity: .95; }
+#graph.hot svg path.out { stroke: var(--c8); stroke-width: 1.7; opacity: .95; }
+.gnode { position: absolute; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px 6px 13px; cursor: pointer; user-select: none; box-shadow: var(--shadow); transition: .15s; }
+.gnode::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; border-radius: 8px 0 0 8px; background: var(--kc, var(--c-other)); }
+.gnode:hover { border-color: var(--ink-3); transform: translateY(-1px); }
+.gnode.sel { border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink), var(--shadow); }
+#graph.hot .gnode.dim { opacity: .28; }
+.gnode .gn { display: block; font-family: var(--mono); font-size: 12.5px; font-weight: 650; }
+.gnode .gm { display: block; font-family: var(--mono); font-size: 9.5px; color: var(--ink-3); }
+.rowlab { position: absolute; left: 10px; font-family: var(--mono); font-size: 9px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-3); }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; padding: 10px 16px; border-top: 1px solid var(--line); font-size: 11px; color: var(--ink-2); }
+.legend .li { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 13px; height: 8px; border-radius: 2px; display: inline-block; }
+.sw.line { height: 2px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow); position: sticky; top: 14px; max-height: calc(100vh - 36px); overflow-y: auto; }
+.panel h3 { font-family: var(--mono); font-size: 16px; font-weight: 650; overflow-wrap: anywhere; }
+.panel .badges { display: flex; gap: 6px; margin: 7px 0 10px; flex-wrap: wrap; }
+.badge { font-family: var(--mono); font-size: 9.5px; letter-spacing: .1em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--ink-2); }
+.badge.kind { border-color: var(--kc); color: var(--kc); }
+.panel p.purpose { font-size: 13px; }
+.panel .pstats { display: flex; margin: 12px 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.panel .pstats div { flex: 1; padding: 8px 10px; border-left: 1px solid var(--line); }
+.panel .pstats div:first-child { border-left: none; }
+.panel .pstats .v { font-family: var(--mono); font-size: 15px; font-weight: 650; }
+.panel .pstats .l { font-size: 9.5px; color: var(--ink-3); text-transform: uppercase; letter-spacing: .08em; }
+.panel h4 { font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-3); margin: 16px 0 6px; }
+.chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.chips button { font-family: var(--mono); font-size: 11px; padding: 2px 9px; border: 1px solid var(--line); border-radius: 999px; color: var(--ink-2); background: var(--surface); }
+.chips button:hover { border-color: var(--c1); color: var(--c1); }
+.chips.out button:hover { border-color: var(--c8); color: var(--c8); }
+.areas { list-style: none; }
+.areas li { font-size: 12px; color: var(--ink-2); padding: 5px 0 5px 12px; border-left: 2px solid var(--line); margin-bottom: 4px; }
+.areas li b { font-family: var(--mono); color: var(--ink); font-size: 11.5px; }
+
+/* ---------- treemap ---------- */
+.tmbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.tmbar select { font-family: var(--mono); font-size: 12.5px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; max-width: 320px; }
+.crumbs { display: flex; align-items: center; gap: 2px; flex-wrap: wrap; font-family: var(--mono); font-size: 12px; }
+.crumbs button { color: var(--accent); padding: 2px 4px; border-radius: 5px; }
+.crumbs button:hover { background: var(--surface-2); }
+.crumbs .here { color: var(--ink); font-weight: 650; padding: 2px 4px; }
+.typel { display: flex; gap: 10px; flex-wrap: wrap; margin-left: auto; font-size: 11px; color: var(--ink-2); }
+.typel .li { display: inline-flex; align-items: center; gap: 5px; }
+.tmlayout { display: grid; grid-template-columns: minmax(0,1fr) 300px; gap: 18px; align-items: start; }
+@media (max-width: 1080px) { .tmlayout { grid-template-columns: 1fr; } }
+#treemap { position: relative; height: clamp(460px, calc(100vh - 320px), 820px); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
+.cell { position: absolute; overflow: hidden; border-radius: 3px; }
+.cell.file { border: 1px solid color-mix(in srgb, var(--surface) 55%, transparent); }
+.cell.file:hover { outline: 2px solid var(--ink); outline-offset: -2px; z-index: 3; }
+.cell.dir { background: var(--surface-2); border: 1px solid var(--line); cursor: pointer; }
+.cell.dir:hover { border-color: var(--ink-3); }
+.cell .lab { position: absolute; top: 2px; left: 4px; right: 4px; font-family: var(--mono); font-size: 10px; line-height: 1.3; color: var(--ink); background: color-mix(in srgb, var(--surface) 78%, transparent); border-radius: 3px; padding: 0 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: fit-content; max-width: calc(100% - 8px); pointer-events: none; }
+.tmhint { position: absolute; right: 8px; bottom: 6px; font-family: var(--mono); font-size: 9.5px; color: var(--ink-3); pointer-events: none; }
+.side { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); }
+.side + .side { margin-top: 14px; }
+.side h4 { font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 8px; }
+.side .bigpath { font-family: var(--mono); font-size: 12.5px; font-weight: 650; overflow-wrap: anywhere; margin-bottom: 8px; }
+.kv { display: flex; justify-content: space-between; font-size: 12px; color: var(--ink-2); padding: 3px 0; }
+.kv b { font-family: var(--mono); color: var(--ink); }
+.typebar { display: flex; height: 12px; gap: 2px; border-radius: 3px; overflow: hidden; margin: 8px 0; }
+.typerow { display: flex; align-items: center; gap: 7px; font-size: 11.5px; color: var(--ink-2); padding: 2px 0; }
+.typerow .sw { width: 10px; height: 10px; }
+.typerow b { font-family: var(--mono); color: var(--ink); margin-left: auto; }
+.topfiles { list-style: none; }
+.topfiles li { display: flex; gap: 8px; align-items: baseline; padding: 4px 0; border-top: 1px dashed var(--line); cursor: pointer; }
+.topfiles li:first-child { border-top: none; }
+.topfiles li:hover .fp { color: var(--accent); }
+.topfiles .fp { font-family: var(--mono); font-size: 11px; color: var(--ink-2); overflow-wrap: anywhere; }
+.topfiles .fl { font-family: var(--mono); font-size: 11px; color: var(--ink); margin-left: auto; white-space: nowrap; }
+
+/* ---------- facets ---------- */
+.fgrid2 { display: grid; grid-template-columns: 1fr; gap: 18px; align-items: start; }
+.fgrid2.cols2 { grid-template-columns: minmax(0,1.15fr) minmax(0,1fr); }
+@media (max-width: 1000px) { .fgrid2.cols2 { grid-template-columns: 1fr; } }
+.fcard2 { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px 18px; box-shadow: var(--shadow); }
+.fcard2 > h3 { font-family: var(--mono); font-size: 13px; font-weight: 650; margin-bottom: 2px; }
+.fcard2 > .sub { font-size: 12px; color: var(--ink-2); margin-bottom: 12px; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 13px; }
+.tile { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 13px 15px; }
+.tile .v { font-family: var(--mono); font-size: 26px; font-weight: 640; letter-spacing: -.02em; }
+.tile .l { font-size: 11.5px; color: var(--ink-2); }
+.tile .s { font-family: var(--mono); font-size: 10px; color: var(--ink-3); }
+.clegend { display: flex; gap: 13px; flex-wrap: wrap; font-size: 11.5px; color: var(--ink-2); margin-bottom: 10px; }
+.sortbar { display: flex; gap: 4px; margin-bottom: 10px; }
+.sortbar button { font-family: var(--mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line); color: var(--ink-3); }
+.sortbar button.on { border-color: var(--ink); color: var(--ink); }
+.bars { }
+.bar { display: grid; grid-template-columns: 170px minmax(0,1fr) minmax(80px,auto); gap: 12px; align-items: center; padding: 5px 0; border-top: 1px dashed var(--line); }
+.bar:first-child { border-top: none; }
+.bar:hover { background: color-mix(in srgb, var(--surface-2) 60%, transparent); }
+.bar .bn { font-family: var(--mono); font-size: 12px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bar .track { display: flex; gap: 2px; height: 13px; }
+.bar .track div { border-radius: 3px; min-width: 3px; }
+.bar .vals { font-family: var(--mono); font-size: 11px; color: var(--ink-2); text-align: right; }
+.bar .vals b { color: var(--ink); }
+.gcols { columns: 3 280px; column-gap: 14px; }
+.grp { break-inside: avoid; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 13px 15px; margin-bottom: 14px; }
+.grp.accent { border-left: 3px solid var(--accent); }
+.grp h4 { font-family: var(--mono); font-size: 11px; font-weight: 650; display: flex; justify-content: space-between; margin-bottom: 8px; }
+.grp h4 .cnt { color: var(--ink-3); font-weight: 400; font-size: 10px; }
+.gchips { display: flex; flex-wrap: wrap; gap: 4px; }
+.gchips span { font-family: var(--mono); font-size: 10.5px; color: var(--ink-2); background: var(--surface-2); border-radius: 5px; padding: 2px 7px; }
+.rtree details { margin-left: 13px; }
+.rtree > details { margin-left: 0; }
+.rtree summary { font-family: var(--mono); font-size: 12px; cursor: pointer; padding: 2px 0; list-style: none; display: flex; align-items: center; gap: 6px; }
+.rtree summary::before { content: "▸"; font-size: 9px; color: var(--ink-3); transition: transform .12s; }
+.rtree details[open] > summary::before { transform: rotate(90deg); }
+.rtree .leaf { display: flex; align-items: center; gap: 7px; padding: 2px 0 2px 14px; margin-left: 13px; }
+.rtree > .leaf { margin-left: 0; padding-left: 0; }
+.rtree .leaf .p { font-family: var(--mono); font-size: 12px; color: var(--ink-2); }
+.rt-badge { font-family: var(--mono); font-size: 8.5px; letter-spacing: .08em; padding: 1px 6px; border-radius: 999px; border: 1px solid var(--bc, var(--ink-3)); color: var(--bc, var(--ink-3)); text-transform: uppercase; }
+.loclist { list-style: none; }
+.loclist li { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 10px; align-items: baseline; padding: 6px 0; border-top: 1px dashed var(--line); }
+.loclist li:first-child { border-top: none; }
+.loclist .jn { font-family: var(--mono); font-size: 12px; font-weight: 600; overflow-wrap: anywhere; }
+.loclist .jm { font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); white-space: nowrap; }
+.loclist .jbar { grid-column: 1 / -1; height: 4px; border-radius: 2px; background: var(--surface-2); overflow: hidden; }
+.loclist .jbar div { height: 100%; background: var(--accent); border-radius: 2px; }
+.loclist li.muted .jn { color: var(--ink-3); font-weight: 450; }
+.subhead { font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-3); margin: 16px 0 6px; }
+
+#tip { position: fixed; z-index: 60; display: none; max-width: 400px; background: var(--ink); color: var(--bg); font-family: var(--mono); font-size: 11px; line-height: 1.5; padding: 7px 10px; border-radius: 7px; pointer-events: none; box-shadow: 0 6px 20px rgba(0,0,0,.3); overflow-wrap: anywhere; }
+footer { border-top: 1px solid var(--line); padding: 18px 0 30px; margin-top: 20px; }
+footer p { font-size: 11px; color: var(--ink-3); max-width: 1000px; }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="shell">
+    <div class="bar">
+      <div>
+        <div class="eyebrow" id="eyebrow"></div>
+        <h1 id="title"></h1>
+      </div>
+      <div class="right">
+        <button class="theme-btn" id="themeBtn">theme: auto</button>
+        <div class="snapshot" id="snapshot"></div>
+      </div>
+    </div>
+    <div class="summary" id="summary"></div>
+    <nav class="tabs" role="tablist" id="tabs"></nav>
+  </div>
+</header>
+
+<main class="shell">
+  <section class="view" id="v-features">
+    <div class="view-head">
+      <h2>功能地图 — 功能点 → 代码</h2>
+      <div class="sub">点功能点卡片里的任意代码行，用所选编辑器直接打开对应文件与行号</div>
+    </div>
+    <div class="toolbar">
+      <input id="featSearch" type="search" placeholder="搜索功能点 / 标签 / 文件路径…" autocomplete="off">
+      <select id="editorPick" title="点击代码行时用哪个编辑器打开">
+        <option value="vscode">VS Code</option>
+        <option value="cursor">Cursor</option>
+        <option value="windsurf">Windsurf</option>
+        <option value="trae">Trae</option>
+        <option value="idea">JetBrains (IDEA/WebStorm…)</option>
+        <option value="sublime">Sublime Text</option>
+        <option value="system">系统默认</option>
+      </select>
+      <span class="pill" id="featCount"></span>
+      <span class="hint" id="featHint"></span>
+    </div>
+    <div class="fgrid" id="fgrid"></div>
+    <div class="empty" id="featEmpty" style="display:none">没有匹配的功能点。</div>
+  </section>
+
+  <section class="view" id="v-arch">
+    <div class="view-head">
+      <h2>模块依赖图</h2>
+      <div class="sub">鼠标悬停看 imports（蓝）/ imported-by（橙）· 点击查看模块详情 · 层级=依赖深度（模块只向下依赖）</div>
+    </div>
+    <div class="arch">
+      <div>
+        <div class="graphwrap"><div id="graph"></div><div class="legend" id="legend"></div></div>
+      </div>
+      <aside class="panel" id="panel"></aside>
+    </div>
+  </section>
+
+  <section class="view" id="v-files">
+    <div class="view-head">
+      <h2>文件浏览器 — 代码量树图</h2>
+      <div class="sub">格子面积=代码行数 · 点目录下钻 · 面包屑返回</div>
+    </div>
+    <div class="tmbar">
+      <select id="modSelect"></select>
+      <div class="crumbs" id="crumbs"></div>
+      <div class="typel" id="typel"></div>
+    </div>
+    <div class="tmlayout">
+      <div id="treemap"></div>
+      <aside>
+        <div class="side" id="tmInfo"></div>
+        <div class="side"><h4>当前视图最大文件</h4><ul class="topfiles" id="topFiles"></ul></div>
+      </aside>
+    </div>
+  </section>
+
+  <div id="facetViews"></div>
+</main>
+
+<footer class="shell"><p id="footNote"></p></footer>
+<div id="tip"></div>
+
+<script>
+const DATA = __CODEMAP_DATA__;
+
+/* ---------- tiny helpers ---------- */
+const $ = (s, el) => (el || document).querySelector(s);
+const esc = (s) => String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+const nfmt = (n) => (n || 0).toLocaleString("en-US");
+const lfmt = (n) => n >= 1e6 ? (n/1e6).toFixed(1)+"M" : n >= 1e4 ? Math.round(n/1e3)+"k" : n >= 1e3 ? (n/1e3).toFixed(1)+"k" : String(n);
+const MODS = (DATA.scan && DATA.scan.modules) || [];
+const MODMAP = new Map(MODS.map(m => [m.id, m]));
+const META = (DATA.meta && DATA.meta.modules) || {};
+const SLOTS = ["--c1","--c2","--c3","--c4","--c5","--c6","--c7","--c8","--c9","--c10"];
+
+/* ---------- tooltip ---------- */
+const tipEl = $("#tip");
+function tipOn(el, html){ el.onmouseenter = (e)=>{ tipEl.innerHTML = html; tipEl.style.display="block"; tipMove(e); }; el.onmousemove = tipMove; el.onmouseleave = ()=>{ tipEl.style.display="none"; }; }
+function tipMove(e){ const p=14; let x=e.clientX+p, y=e.clientY+p; const r=tipEl.getBoundingClientRect(); if(x+r.width>innerWidth-8) x=e.clientX-r.width-p; if(y+r.height>innerHeight-8) y=e.clientY-r.height-p; tipEl.style.left=x+"px"; tipEl.style.top=y+"px"; }
+
+/* ---------- theme ---------- */
+const THEMES=["auto","light","dark"]; let theme=localStorage.getItem("cm-theme")||"auto";
+function applyTheme(){ if(theme==="auto") document.documentElement.removeAttribute("data-theme"); else document.documentElement.setAttribute("data-theme",theme); $("#themeBtn").textContent="theme: "+theme; localStorage.setItem("cm-theme",theme); }
+$("#themeBtn").onclick=()=>{ theme=THEMES[(THEMES.indexOf(theme)+1)%3]; applyTheme(); }; applyTheme();
+
+/* ---------- header ---------- */
+document.title = DATA.title + " · code-map";
+$("#eyebrow").textContent = DATA.subtitle || "code map";
+$("#title").innerHTML = esc(DATA.title) + ' <span class="muted">/ code-map</span>';
+$("#snapshot").textContent = `snapshot ${DATA.generated}${DATA.commit ? ` · ${DATA.branch?DATA.branch+" @ ":""}${DATA.commit}` : ""}`;
+const T = (DATA.scan && DATA.scan.totals) || {files:0,loc:0};
+const kindCount = {}; for(const m of MODS) kindCount[m.kind]=(kindCount[m.kind]||0)+1;
+const kindStr = Object.entries(kindCount).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k,n])=>n+" "+k).join(" · ");
+const langs = (DATA.scan && DATA.scan.languages) || [];
+const langStr = langs.slice(0,3).map(l=>l.lang||l.ext).join(" · ");
+$("#summary").innerHTML = [
+  [lfmt(T.loc), "lines of code", "counted source only"],
+  [nfmt(T.files), "source files", "see footer for scope"],
+  [MODS.length, "modules", kindStr],
+  [(DATA.features||[]).length || langs.length, (DATA.features||[]).length ? "功能点 / features" : "languages", (DATA.features||[]).length ? "点击可跳转代码" : langStr],
+].map(([v,l,s])=>`<div class="stat"><div class="v">${esc(v)}</div><div class="l">${esc(l)}</div><div class="s">${esc(s)}</div></div>`).join("");
+$("#footNote").textContent = `Generated ${DATA.generated} by code-map from a static scan${DATA.commit?` @ ${DATA.commit} (${DATA.commitDate})`:""}. Line counts cover source files only; dependency dirs, build output and configured generated paths are excluded.`;
+
+/* ---------- tabs ---------- */
+const hasFeatures = (DATA.features||[]).length > 0;
+const tabDefs = [
+  ...(hasFeatures ? [{id:"features", label:"功能 / Features"}] : []),
+  {id:"arch", label:"架构 / Architecture"},
+  {id:"files", label:"文件 / Explorer"},
+  ...((DATA.facets||[]).map(f=>({id:"facet-"+f.id, label:f.nav||f.title}))),
+];
+$("#tabs").innerHTML = tabDefs.map((t,i)=>`<button role="tab" data-v="${t.id}" aria-selected="${i===0}">${esc(t.label)}</button>`).join("");
+function switchTab(v){
+  for(const b of $("#tabs").querySelectorAll("button")) b.setAttribute("aria-selected", String(b.dataset.v===v));
+  const ids = ["features","arch","files", ...((DATA.facets||[]).map(f=>"facet-"+f.id))];
+  for(const id of ids){ const el=$("#v-"+id); if(el) el.classList.toggle("on", id===v); }
+  if(v==="arch") renderGraph();
+  if(v==="files") renderTreemap();
+}
+$("#tabs").addEventListener("click",(e)=>{ const b=e.target.closest("button"); if(b) switchTab(b.dataset.v); });
+
+/* ============================================================
+   FEATURES — 功能点 → 跨栈代码，点击跳转编辑器
+   ============================================================ */
+const LAYER_COLOR = { frontend:"--c1", ui:"--c1", web:"--c1", component:"--c1",
+  backend:"--c2", api:"--c2", server:"--c2", service:"--c2",
+  database:"--c5", db:"--c5", model:"--c5", schema:"--c5", migration:"--c5",
+  worker:"--c3", job:"--c3", queue:"--c3", event:"--c3", cron:"--c3",
+  cli:"--c7", test:"--c6", config:"--c8" };
+const layerColor = (l)=>LAYER_COLOR[String(l||"").toLowerCase()]||"--c-other";
+
+const REPO_ROOT = DATA.repoRoot || "";
+const absPath = (rel)=>{ const base=REPO_ROOT.replace(/[\\/]+$/,""); return ((base?base+"/":"")+rel).replace(/\\/g,"/"); };
+const startLine = (lines)=>{ const m=String(lines||"").match(/\d+/); return m?Number(m[0]):1; };
+const EDITORS = {
+  vscode:(p,l)=>`vscode://file/${p}:${l}:1`,
+  cursor:(p,l)=>`cursor://file/${p}:${l}:1`,
+  windsurf:(p,l)=>`windsurf://file/${p}:${l}:1`,
+  trae:(p,l)=>`trae://file/${p}:${l}:1`,
+  idea:(p,l)=>`idea://open?file=${encodeURIComponent(p)}&line=${l}`,
+  sublime:(p,l)=>`subl://open?url=file:///${p}&line=${l}`,
+};
+const curEditor = ()=>localStorage.getItem("cm-editor")||"vscode";
+function openAt(rel, lines){
+  const p=absPath(rel), l=startLine(lines), kind=curEditor();
+  if(kind==="system"){ location.href="file:///"+p; return; }
+  const b=EDITORS[kind]; if(b) location.href=b(p,l);
+}
+
+const FEATURES = DATA.features||[];
+const fgrid=$("#fgrid"), featSearch=$("#featSearch"), featCount=$("#featCount"), featHint=$("#featHint"), featEmpty=$("#featEmpty"), editorPick=$("#editorPick");
+function featureCard(f){
+  const rows=(f.paths||[]).map(pa=>{
+    const ln = pa.lines?`<span class="ln">:${esc(pa.lines)}</span>`:"";
+    return `<div class="frow">
+      <span class="layer" style="--bc:var(${layerColor(pa.layer)})">${esc(pa.layer||"code")}</span>
+      <span class="loc"><a class="open" data-file="${esc(pa.file)}" data-lines="${esc(pa.lines||"")}" title="打开 ${esc(pa.file)}">${esc(pa.file)}${ln}</a>${pa.note?` <span class="note">— ${esc(pa.note)}</span>`:""}</span>
+      <button class="goto" data-file="${esc(pa.file)}" data-lines="${esc(pa.lines||"")}">打开</button>
+    </div>`;
+  }).join("");
+  const tags=(f.tags||[]).map(t=>`<span>${esc(t)}</span>`).join("");
+  const c=document.createElement("div"); c.className="fcard";
+  c.innerHTML=`<h3>${esc(f.name)}</h3>${f.domain?`<div class="dom">${esc(f.domain)}</div>`:""}
+    ${f.desc?`<div class="desc">${esc(f.desc)}</div>`:""}
+    ${rows||`<div class="desc" style="color:var(--ink-3)">未映射到具体文件</div>`}
+    ${tags?`<div class="tags">${tags}</div>`:""}`;
+  return c;
+}
+function filterFeatures(){
+  const q=(featSearch.value||"").trim().toLowerCase(); let n=0;
+  for(const c of fgrid.children){ const hit=!q||(c.dataset.hay||"").includes(q); c.style.display=hit?"":"none"; if(hit)n++; }
+  featCount.textContent = q?`${n} / ${FEATURES.length} 个功能点`:`共 ${FEATURES.length} 个功能点`;
+  featEmpty.style.display = n===0?"":"none";
+}
+function editorHint(){ const sel=$("#editorPick"); const name=sel.options[sel.selectedIndex].text;
+  featHint.textContent = REPO_ROOT?`点击代码行用「${name}」打开 · 仓库根：${REPO_ROOT}`:"未提供仓库根路径，无法直接打开文件"; }
+if(hasFeatures){
+  for(const f of FEATURES){ const c=featureCard(f); c.dataset.hay=[f.name,f.domain,f.desc,...(f.tags||[]),...(f.paths||[]).map(p=>p.file)].filter(Boolean).join(" ").toLowerCase(); fgrid.appendChild(c); }
+  editorPick.value=curEditor(); editorHint();
+  editorPick.addEventListener("change",()=>{ localStorage.setItem("cm-editor",editorPick.value); editorHint(); });
+  featSearch.addEventListener("input",filterFeatures); filterFeatures();
+  fgrid.addEventListener("click",(e)=>{ const el=e.target.closest(".open,.goto"); if(!el) return; if(!REPO_ROOT){ alert("本图未记录仓库根路径，无法打开文件。"); return; } openAt(el.dataset.file, el.dataset.lines); });
+}
+window.__codemap = { absPath, startLine, openAt, REPO_ROOT, MODS };
+
+/* ============================================================
+   ARCHITECTURE — layered module dependency graph
+   ============================================================ */
+function modFilesPath(m){ return m.path; }
+const graphEl=$("#graph"), panelEl=$("#panel");
+function computeLayers(){
+  const layer=new Map();
+  const depOf=(id)=>(MODMAP.get(id)?.deps||[]).filter(d=>MODMAP.has(d));
+  const visiting=new Set();
+  const f=(id)=>{ if(layer.has(id))return layer.get(id); if(visiting.has(id))return 0; visiting.add(id);
+    const ds=depOf(id); const v = ds.length? 1+Math.max(...ds.map(f)) : 0; visiting.delete(id); layer.set(id,v); return v; };
+  for(const m of MODS) f(m.id);
+  return layer;
+}
+function kindOrder(){
+  const cnt={}; for(const m of MODS) cnt[m.kind]=(cnt[m.kind]||0)+1;
+  return Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a]);
+}
+function renderGraph(){
+  if(!MODS.length){ graphEl.innerHTML="<div style='padding:20px;color:var(--ink-3)'>未检测到模块</div>"; return; }
+  const layer=computeLayers(); const maxL=Math.max(...layer.values());
+  const rows=Array.from({length:maxL+1},()=>[]);
+  for(const m of MODS) rows[layer.get(m.id)].push(m);
+  const NW=170, NH=42, GX=26, GY=76, TOP=30, LEFT=54, RIGHT=24;
+  const widest=Math.max(...rows.map(r=>r.length));
+  const rowW=widest*NW+(widest-1)*GX;
+  const pos=new Map();
+  rows.forEach((row,li)=>{
+    const y=TOP+(maxL-li)*GY;
+    const total=row.length*NW+(row.length-1)*GX;
+    let x=LEFT+Math.max(0,(rowW-total)/2);
+    for(const m of row){ pos.set(m.id,{x,y,w:NW,h:NH}); x+=NW+GX; }
+  });
+  const width=Math.max(640, LEFT+rowW+RIGHT), height=TOP+(maxL+1)*GY;
+  const kOrder=kindOrder(); const kColor=new Map(kOrder.map((k,i)=>[k,SLOTS[i%SLOTS.length]]));
+  const edges=DATA.scan.edges||[];
+  let svg="";
+  for(const e of edges){ const a=pos.get(e.from), b=pos.get(e.to); if(!a||!b)continue;
+    const x1=a.x+a.w/2, y1=a.y+a.h, x2=b.x+b.w/2, y2=b.y;
+    const my=(y1+y2)/2;
+    svg+=`<path d="M${x1},${y1} C${x1},${my} ${x2},${my} ${x2},${y2}" data-from="${esc(e.from)}" data-to="${esc(e.to)}"/>`;
+  }
+  let nodes="";
+  rows.forEach((row,li)=>{ const y=TOP+(maxL-li)*GY;
+    nodes+=`<div class="rowlab" style="top:${y-16}px">${li===maxL?"顶层 / entry":("L"+li)}</div>`;
+    for(const m of row){ const p=pos.get(m.id);
+      nodes+=`<div class="gnode" data-id="${esc(m.id)}" style="left:${p.x}px;top:${p.y}px;width:${p.w}px;height:${p.h}px;--kc:var(${kColor.get(m.kind)||"--c-other"})">
+        <span class="gn">${esc(m.id)}</span><span class="gm">${m.files} files · ${lfmt(m.loc)}</span></div>`;
+    }
+  });
+  graphEl.style.height=height+"px";
+  graphEl.style.width=width+"px";
+  const gw=graphEl.parentElement.clientWidth||width;
+  graphEl.style.width=Math.max(width, gw)+"px";
+  const W=graphEl.clientWidth||width;
+  graphEl.innerHTML=`<svg width="${W}" height="${height}" viewBox="0 0 ${W} ${height}">${svg}</svg>${nodes}`;
+  $("#legend").innerHTML = kOrder.map(k=>`<span class="li"><span class="sw" style="background:var(${kColor.get(k)})"></span>${esc(k)}</span>`).join("")
+    + `<span class="li"><span class="sw line" style="background:var(--c1)"></span>imports</span><span class="li"><span class="sw line" style="background:var(--c8)"></span>imported by</span>`;
+  graphEl.querySelectorAll(".gnode").forEach(node=>{
+    const id=node.dataset.id;
+    node.onclick=()=>selectModule(id);
+    node.onmouseenter=()=>{ graphEl.classList.add("hot"); graphEl.querySelectorAll(".gnode").forEach(n=>n.classList.toggle("dim", n!==node && n.dataset.id!==id)); graphEl.querySelectorAll("svg path").forEach(p=>{ p.classList.toggle("in",p.dataset.from===id); p.classList.toggle("out",p.dataset.to===id); }); };
+    node.onmouseleave=()=>{ graphEl.classList.remove("hot"); graphEl.querySelectorAll(".gnode").forEach(n=>n.classList.remove("dim")); graphEl.querySelectorAll("svg path").forEach(p=>p.classList.remove("in","out")); };
+  });
+  selectModule((MODS.slice().sort((a,b)=>b.loc-a.loc)[0]||{}).id);
+}
+function selectModule(id){
+  const m=MODMAP.get(id); if(!m) return;
+  graphEl.querySelectorAll(".gnode").forEach(n=>n.classList.toggle("sel", n.dataset.id===id));
+  const meta=META[id]||{};
+  const kind=kindOrder(); const kColor=new Map(kind.map((k,i)=>[k,SLOTS[i%SLOTS.length]]));
+  const dep=(m.deps||[]).filter(d=>MODMAP.has(d)), rev=(m.dependedBy||[]).filter(d=>MODMAP.has(d));
+  panelEl.innerHTML=`<h3>${esc(m.id)}</h3>
+    <div class="badges"><span class="badge kind" style="--kc:var(${kColor.get(m.kind)||"--c-other"})">${esc(m.kind)}</span><span class="badge">${esc(m.path)}</span></div>
+    ${meta.purpose?`<p class="purpose">${esc(meta.purpose)}</p>`:""}
+    <div class="pstats"><div><div class="v">${nfmt(m.files)}</div><div class="l">files</div></div><div><div class="v">${lfmt(m.loc)}</div><div class="l">lines</div></div><div><div class="v">${dep.length}</div><div class="l">deps</div></div><div><div class="v">${rev.length}</div><div class="l">used by</div></div></div>
+    ${meta.keyAreas?`<h4>key areas</h4><ul class="areas">${meta.keyAreas.map(a=>{const [d,...r]=String(a).split(" — ");return `<li><b>${esc(d)}</b>${r.length?" — "+esc(r.join(" — ")):""}</li>`;}).join("")}</ul>`:""}
+    ${dep.length?`<h4>depends on</h4><div class="chips">${dep.map(d=>`<button data-go="${esc(d)}">${esc(d)}</button>`).join("")}</div>`:""}
+    ${rev.length?`<h4>used by</h4><div class="chips out">${rev.map(d=>`<button data-go="${esc(d)}">${esc(d)}</button>`).join("")}</div>`:""}`;
+  panelEl.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>selectModule(b.dataset.go));
+}
+
+/* ============================================================
+   TREEMAP — squarified, directory navigation
+   ============================================================ */
+const TYPE_DEF = [[".ts","--c1"],["tsx","--c1"],["js","--c3"],["vue","--c2"],["py","--c4"],["go","--c5"],["rs","--c8"],["java","--c6"],["css","--c7"],["json","--c-other"],["md","--c9"],["sql","--c10"]];
+function typeColor(ext){ const hit=TYPE_DEF.find(([e])=>e===ext||e===ext.replace(/^\./,"")); if(hit)return hit[1];
+  if([".tsx",".jsx"].includes(ext))return "--c1"; if([".scss",".less"].includes(ext))return "--c7"; return "--c-other"; }
+function squarify(items, x, y, w, h){
+  const out=[]; if(!items.length) return out;
+  const data=items.slice().sort((a,b)=>b.v-a.v); const total=data.reduce((s,i)=>s+i.v,0)||1; const scale=(w*h)/total;
+  const arr=data.map(i=>({...i,area:i.v*scale}));
+  let i=0, rx=x, ry=y, rw=w, rh=h;
+  const worst=(row,side)=>{ const s=row.reduce((a,b)=>a+b.area,0); const mx=Math.max(...row.map(r=>r.area)), mn=Math.min(...row.map(r=>r.area)); return Math.max(side*side*mx/(s*s), s*s/(side*side*mn)); };
+  while(i<arr.length){
+    const side=Math.min(rw,rh); let cur=[arr[i]]; let j=i+1;
+    while(j<arr.length){ const nx=[...cur,arr[j]]; if(worst(nx,side)<=worst(cur,side)){cur=nx;j++;} else break; }
+    const s=cur.reduce((a,b)=>a+b.area,0);
+    if(rw>=rh){ const ww=s/rh; let oy=ry; for(const it of cur){ const hh=it.area/ww; out.push({...it,x:rx,y:oy,w:ww,h:hh}); oy+=hh; } rx+=ww; rw-=ww; }
+    else { const hh=s/rw; let ox=rx; for(const it of cur){ const ww=it.area/hh; out.push({...it,x:ox,y:ry,w:ww,h:hh}); ox+=ww; } ry+=hh; rh-=hh; }
+    i=j;
+  }
+  return out;
+}
+const modSelect=$("#modSelect"), crumbsEl=$("#crumbs"), treemapEl=$("#treemap"), tmInfo=$("#tmInfo"), topFiles=$("#topFiles"), typel=$("#typel");
+let tmMod=(MODS.slice().sort((a,b)=>b.loc-a.loc)[0]||{}).id||null, tmPath=[];
+if(MODS.length){ modSelect.innerHTML=MODS.slice().sort((a,b)=>b.loc-a.loc).map(m=>`<option value="${esc(m.id)}">${esc(m.id)}</option>`).join(""); modSelect.value=tmMod; modSelect.onchange=()=>{ tmMod=modSelect.value; tmPath=[]; renderTreemap(); }; }
+function nodeAt(root, segs){ let n=root; for(const s of segs){ n=(n.c||[]).find(c=>c.n===s); if(!n)return null; } return n; }
+function collectFiles(node, prefix, out){ for(const ch of node.c||[]){ if(ch.c) collectFiles(ch, prefix?prefix+"/"+ch.n:ch.n, out); else out.push({path:prefix?prefix+"/"+ch.n:ch.n, v:ch.v, e:ch.e}); } return out; }
+function renderTreemap(){
+  const m=MODMAP.get(tmMod); if(!m||!m.tree){ treemapEl.innerHTML="<div style='padding:20px;color:var(--ink-3)'>该模块无可显示文件</div>"; return; }
+  const root=nodeAt(m.tree, tmPath); if(!root){ tmPath=[]; return renderTreemap(); }
+  crumbsEl.innerHTML = `<button data-crumb="-1">${esc(m.id)}</button>` + tmPath.map((s,idx)=>`<span class="sep">/</span><button data-crumb="${idx}">${esc(s)}</button>`).join("");
+  crumbsEl.querySelectorAll("button").forEach(b=>b.onclick=()=>{ const i=+b.dataset.crumb; tmPath = i<0?[]:tmPath.slice(0,i+1); renderTreemap(); });
+  const kids=(root.c||[]).filter(k=>k.v>0);
+  const W=treemapEl.clientWidth||900, H=treemapEl.clientHeight||700;
+  const cells=squarify(kids.map(k=>({v:k.v,n:k.n,node:k,isDir:!!k.c})),0,0,W,H);
+  treemapEl.innerHTML=cells.map(c=>{
+    const left=c.x, top=c.y, w=Math.max(0,c.w-2), h=Math.max(0,c.h-2);
+    if(w<2||h<2) return "";
+    if(c.isDir){ const col=typeColor(dominantExt(c.node)); return `<div class="cell dir" data-dir="${esc(c.n)}" style="left:${left}px;top:${top}px;width:${w}px;height:${h}px;background:color-mix(in srgb,var(${col}) 18%, var(--surface-2))"><span class="lab">${esc(c.n)}/ · ${lfmt(c.v)}</span></div>`; }
+    const col=typeColor(c.node.e); const showLab = w>60 && h>16;
+    return `<div class="cell file" data-file="${esc(c.n)}" title="${esc(c.n)} · ${lfmt(c.v)} loc" style="left:${left}px;top:${top}px;width:${w}px;height:${h}px;background:var(${col})">${showLab?`<span class="lab">${esc(c.n)}</span>`:""}</div>`;
+  }).join("") + `<div class="tmhint">${(root.f||0)} files · ${lfmt(root.v||0)} loc</div>`;
+  treemapEl.querySelectorAll(".cell.dir").forEach(d=>d.onclick=()=>{ tmPath=[...tmPath,d.dataset.dir]; renderTreemap(); });
+  treemapEl.querySelectorAll(".cell.file").forEach(f=>{ const full=[...tmPath,f.dataset.file].join("/"); tipOn(f, esc([modSelect.value,full].join("/"))); f.onclick=()=>{ if(REPO_ROOT) openAt(m.path.split("/").length?(m.path+"/"+full):full, ""); }; });
+  // side info
+  const files=collectFiles(root,"",[]); const byType={};
+  for(const f of files) byType[f.e]=(byType[f.e]||0)+f.v;
+  const total=root.v||1; const exts=Object.keys(byType).sort((a,b)=>byType[b]-byType[a]).slice(0,8);
+  tmInfo.innerHTML=`<h4>当前视图</h4><div class="bigpath">${esc([m.path, ...tmPath].join("/"))}/</div>
+    <div class="kv"><span>lines of code</span><b>${nfmt(root.v||0)}</b></div>
+    <div class="kv"><span>files</span><b>${nfmt(root.f||0)}</b></div>
+    <div class="kv"><span>占 ${esc(m.id)}</span><b>${((root.v/(m.loc||1))*100).toFixed(1)}%</b></div>
+    <div class="typebar">${exts.map(e=>`<div style="width:${(byType[e]/total*100).toFixed(1)}%;background:var(${typeColor(e)})"></div>`).join("")}</div>
+    ${exts.map(e=>`<div class="typerow"><span class="sw" style="background:var(${typeColor(e)})"></span>${esc(e||"其他")}<b>${Math.round(byType[e]/total*100)}% · ${lfmt(byType[e])}</b></div>`).join("")}`;
+  files.sort((a,b)=>b.v-a.v);
+  topFiles.innerHTML=files.slice(0,12).map(f=>`<li data-f="${esc(f.path)}"><span class="fp">${esc(f.path)}</span><span class="fl">${lfmt(f.v)}</span></li>`).join("");
+  topFiles.querySelectorAll("li").forEach(li=>li.onclick=()=>{ const seg=li.dataset.f.split("/"); seg.pop(); tmPath=[...tmPath,...seg]; renderTreemap(); });
+  typel.innerHTML=TYPE_DEF.filter(([e])=>byType[e]).slice(0,6).map(([e,c])=>`<span class="li"><span class="sw" style="background:var(${c})"></span>${esc(e)}</span>`).join("");
+}
+function dominantExt(node){ const f=collectFiles(node,"",[]); const c={}; for(const x of f) c[x.e]=(c[x.e]||0)+x.v; return Object.keys(c).sort((a,b)=>c[b]-c[a])[0]; }
+
+/* ============================================================
+   FACETS — declarative sections
+   ============================================================ */
+const BADGE_SLOTS=["--c1","--c8","--c2","--c5","--c3"];
+function badgeColor(sec){ const seen=new Map(); (function walk(items){ for(const it of items||[]){ if(it.badge&&!seen.has(it.badge)) seen.set(it.badge,BADGE_SLOTS[seen.size%BADGE_SLOTS.length]); walk(it.children); } })(sec.items); return b=>seen.get(b)||"--c-other"; }
+function renderSection(sec, host){
+  const card=document.createElement("div"); const bare=sec.kind==="tiles"; card.className=bare?"":"fcard2";
+  if(!bare && sec.title) card.innerHTML=`<h3>${esc(sec.title)}</h3>${sec.sub?`<div class="sub">${esc(sec.sub)}</div>`:""}`;
+  host.appendChild(card); const body=document.createElement("div"); card.appendChild(body);
+  if(sec.kind==="tiles"){ body.className="tiles"; body.innerHTML=(sec.tiles||[]).map(t=>`<div class="tile"><div class="v">${esc(t.v)}</div><div class="l">${esc(t.l)}</div><div class="s">${esc(t.s||"")}</div></div>`).join(""); }
+  else if(sec.kind==="barlist"){ renderBars(sec, body); }
+  else if(sec.kind==="groups"){ body.className="gcols"; body.innerHTML=(sec.groups||[]).map(g=>`<div class="grp${g.accent?" accent":""}"><h4>${esc(g.title)} <span class="cnt">${(g.chips||[]).length}</span></h4><div class="gchips">${(g.chips||[]).map(c=>`<span>${esc(c)}</span>`).join("")}</div></div>`).join(""); }
+  else if(sec.kind==="tree"){ body.className="rtree"; const bc=badgeColor(sec); const node=(it,d)=>{ const bd=it.badge?`<span class="rt-badge" style="--bc:var(${bc(it.badge)})">${esc(it.badge)}</span>`:""; if(!it.children?.length) return `<div class="leaf"><span class="p">${esc(it.label)}</span>${bd}</div>`; return `<details${d<1?" open":""}><summary>${esc(it.label)}${bd?" "+bd:""}</summary>${it.children.map(c=>node(c,d+1)).join("")}</details>`; }; body.innerHTML=(sec.items||[]).map(i=>node(i,0)).join(""); }
+  else if(sec.kind==="loclist"){ const max=Math.max(1,...(sec.rows||[]).map(r=>r.bar??0)); let html=""; for(const r of sec.rows||[]){ if(r.section){ html+=`</ul><h5 class="subhead">${esc(r.section)}</h5><ul class="loclist">`; continue; } html+=`<li${r.muted?' class="muted"':""}><span class="jn">${esc(r.label)}</span><span class="jm">${esc(r.meta||"")}</span>${r.bar!=null?`<span class="jbar"><div style="width:${(r.bar/max*100).toFixed(1)}%"></div></span>`:""}</li>`; } body.innerHTML=`<ul class="loclist">${html}</ul>`; }
+}
+function renderBars(sec, body){
+  const series=sec.series||[];
+  body.innerHTML=`<div class="clegend">${series.map((s,i)=>`<span class="li"><span class="sw" style="background:var(${SLOTS[i%SLOTS.length]})"></span>${esc(s.label)}</span>`).join("")}${sec.note?`<span class="li" style="color:var(--ink-3)">${esc(sec.note)}</span>`:""}</div>
+    <div class="sortbar"><button data-k="value" class="on">按数值</button><button data-k="name">a–z</button></div><div class="bars"></div>`;
+  const list=body.querySelector(".bars"); const total=r=>series.reduce((s,sr)=>s+(r.values?.[sr.k]||0),0); let key="value";
+  const draw=()=>{ const rows=[...(sec.rows||[])]; rows.sort(key==="value"?(a,b)=>total(b)-total(a):(a,b)=>String(a.label).localeCompare(String(b.label)));
+    const max=Math.max(1,...rows.map(total));
+    list.innerHTML=rows.map(r=>{ const segs=series.map((sr,i)=>{ const v=r.values?.[sr.k]||0; return v?`<div style="width:${(v/max*100).toFixed(2)}%;background:var(${SLOTS[i%SLOTS.length]})"></div>`:""; }).join("");
+      return `<div class="bar" data-l="${esc(r.label)}"><div class="bn">${esc(r.label)}</div><div class="track">${segs}</div><div class="vals"><b>${total(r)}</b>${r.meta?` · ${esc(r.meta)}`:""}</div></div>`; }).join("");
+    list.querySelectorAll(".bar").forEach(el=>{ const r=(sec.rows||[]).find(x=>x.label===el.dataset.l); if(r?.tip) tipOn(el, esc(r.tip)); }); };
+  body.querySelector(".sortbar").addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b)return; key=b.dataset.k; body.querySelectorAll(".sortbar button").forEach(x=>x.classList.toggle("on",x===b)); draw(); });
+  draw();
+}
+const facetHost=$("#facetViews");
+for(const f of DATA.facets||[]){ const sec=document.createElement("section"); sec.className="view"; sec.id="v-facet-"+f.id;
+  sec.innerHTML=`<div class="view-head"><h2>${esc(f.title)}${f.headline?` — <span style="font-weight:400">${esc(f.headline)}</span>`:""}</h2>${f.sub?`<div class="sub">${esc(f.sub)}</div>`:""}</div>`;
+  const grid=document.createElement("div"); grid.className="fgrid2"+(f.columns===2?" cols2":""); sec.appendChild(grid);
+  for(const s of f.sections||[]) renderSection(s, grid); facetHost.appendChild(sec);
+}
+
+/* ---------- boot ---------- */
+let rt; addEventListener("resize",()=>{ clearTimeout(rt); rt=setTimeout(()=>{ if($("#v-arch").classList.contains("on")) renderGraph(); if($("#v-files").classList.contains("on")) renderTreemap(); },150); });
+const init=location.hash.replace("#","");
+switchTab(tabDefs.some(t=>t.id===init)?init:(hasFeatures?"features":"arch"));
+</script>
+</body>
+</html>
