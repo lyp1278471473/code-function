@@ -20,7 +20,9 @@ Everything here is original work (see `LICENSE`); no third-party code is vendore
 
 ## What the generated HTML contains
 
-- **功能 / Features** *(default)* — feature → cross-stack code cards, clickable to the editor.
+- **功能 / Features** *(default)* — feature → cross-stack code cards. Cards are **collapsed by
+  default and expand on click** (search auto-expands matches; 展开全部/折叠全部 buttons toggle all).
+  Each code line is clickable to open in the editor.
 - **架构 / Architecture** — module dependency graph layered by dependency depth; hover to trace
   imports/imported-by, click for a module panel.
 - **文件 / Explorer** — squarified lines-of-code treemap; drill into directories via breadcrumbs.

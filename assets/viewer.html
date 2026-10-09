@@ -83,11 +83,19 @@ main{min-width:0;padding:22px 28px 70px;position:relative}
 
 /* features */
 .fgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:13px;align-items:start}
-.fcard{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px 16px 16px;box-shadow:var(--shadow)}
+.fcard{background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow)}
 .fcard:hover{border-color:color-mix(in srgb,var(--accent) 40%,var(--line))}
-.fcard h3{font-size:13.5px;font-weight:700;color:var(--ink)}
-.fcard .dom{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin:4px 0 8px}
+.fcard .head{display:flex;align-items:baseline;gap:9px;width:100%;text-align:left;padding:12px 14px;cursor:pointer}
+.fcard .head:hover{background:var(--surface2);border-radius:8px 8px 0 0}
+.fcard .caret{flex:none;color:var(--ink3);font-size:10px;transition:transform .15s}
+.fcard.open .caret{transform:rotate(90deg)}
+.fcard .head .hname{font-size:13.5px;font-weight:700;color:var(--ink)}
+.fcard .head .hcount{margin-left:auto;flex:none;font-size:9.5px;color:var(--ink3);border:1px solid var(--line);border-radius:999px;padding:1px 8px}
+.fcard .body{display:none;padding:0 14px 15px}
+.fcard.open .body{display:block}
+.fcard .dom{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin:0 0 8px}
 .fcard .desc{font-size:12px;color:var(--ink2);margin-bottom:11px}
+.fcard .head .dom{margin:0}
 .frow{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;align-items:baseline;padding:5px 0;border-top:1px dashed var(--line)}
 .frow:first-of-type{border-top:none}
 .layer{font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;padding:1px 7px;border-radius:999px;border:1px solid var(--bc,var(--ink3));color:var(--bc,var(--ink3));white-space:nowrap}
@@ -251,6 +259,8 @@ footer{position:relative;z-index:1;border-top:1px solid var(--line);margin-top:2
     </div>
     <div class="toolbar">
       <input id="featSearch" type="search" placeholder="grep 功能点 / 标签 / 文件路径…" autocomplete="off">
+      <button class="pill" id="expandAll">展开全部</button>
+      <button class="pill" id="collapseAll">折叠全部</button>
       <span class="pill" id="featCount"></span>
       <span class="hint" id="featHint"></span>
     </div>
@@ -373,17 +383,31 @@ function featureCard(f){
       <span class="loc"><a class="open" data-file="${esc(pa.file)}" data-lines="${esc(pa.lines||"")}" title="打开 ${esc(pa.file)}">${esc(pa.file)}${ln}</a>${pa.note?` <span class="note">— ${esc(pa.note)}</span>`:""}</span>
       <button class="goto" data-file="${esc(pa.file)}" data-lines="${esc(pa.lines||"")}">open</button></div>`; }).join("");
   const tags=(f.tags||[]).map(t=>`<span>${esc(t)}</span>`).join("");
+  const count=(f.paths||[]).length;
   const c=document.createElement("div"); c.className="fcard";
-  c.innerHTML=`<h3>${esc(f.name)}</h3>${f.domain?`<div class="dom">${esc(f.domain)}</div>`:""}${f.desc?`<div class="desc">${esc(f.desc)}</div>`:""}${rows||`<div class="desc" style="color:var(--ink3)">未映射到具体文件</div>`}${tags?`<div class="tags">${tags}</div>`:""}`;
+  c.innerHTML=`<button class="head" aria-expanded="false">
+      <span class="caret">▶</span>
+      <span class="hname">${esc(f.name)}</span>
+      ${f.domain?`<span class="dom">${esc(f.domain)}</span>`:""}
+      <span class="hcount">${count} 处</span>
+    </button>
+    <div class="body">${f.desc?`<div class="desc">${esc(f.desc)}</div>`:""}${rows||`<div class="desc" style="color:var(--ink3)">未映射到具体文件</div>`}${tags?`<div class="tags">${tags}</div>`:""}</div>`;
+  c.querySelector(".head").addEventListener("click",()=>{
+    const open=c.classList.toggle("open");
+    c.querySelector(".head").setAttribute("aria-expanded",String(open));
+  });
   return c;
 }
-function filterFeatures(){ const q=(featSearch.value||"").trim().toLowerCase(); let n=0; for(const c of fgrid.children){ const hit=!q||(c.dataset.hay||"").includes(q); c.style.display=hit?"":"none"; if(hit)n++; } featCount.textContent=q?`${n} / ${FEATURES.length} 个功能点`:`共 ${FEATURES.length} 个功能点`; featEmpty.style.display=n===0?"":"none"; }
+function setOpen(card,open){ card.classList.toggle("open",open); const h=card.querySelector(".head"); if(h) h.setAttribute("aria-expanded",String(open)); }
+function filterFeatures(){ const q=(featSearch.value||"").trim().toLowerCase(); let n=0; for(const c of fgrid.children){ const hit=!q||(c.dataset.hay||"").includes(q); c.style.display=hit?"":"none"; if(hit){ n++; if(q) setOpen(c,true); } } featCount.textContent=q?`${n} / ${FEATURES.length} 个功能点`:`共 ${FEATURES.length} 个功能点`; featEmpty.style.display=n===0?"":"none"; }
 function editorHint(){ const sel=$("#editorPick"); const name=sel.options[sel.selectedIndex].text; featHint.textContent=REPO_ROOT?`open with「${name}」· repo: ${REPO_ROOT}`:"未提供仓库根路径，无法直接打开文件"; }
 if(hasFeatures){
   for(const f of FEATURES){ const c=featureCard(f); c.dataset.hay=[f.name,f.domain,f.desc,...(f.tags||[]),...(f.paths||[]).map(p=>p.file)].filter(Boolean).join(" ").toLowerCase(); fgrid.appendChild(c); }
   editorPick.value=curEditor(); editorHint();
   editorPick.addEventListener("change",()=>{ localStorage.setItem("cm-editor",editorPick.value); editorHint(); });
   featSearch.addEventListener("input",filterFeatures); filterFeatures();
+  $("#expandAll").addEventListener("click",()=>{ for(const c of fgrid.children) if(c.style.display!=="none") setOpen(c,true); });
+  $("#collapseAll").addEventListener("click",()=>{ for(const c of fgrid.children) setOpen(c,false); });
   fgrid.addEventListener("click",e=>{ const el=e.target.closest(".open,.goto"); if(!el)return; if(!REPO_ROOT){alert("本图未记录仓库根路径，无法打开文件。");return;} openAt(el.dataset.file,el.dataset.lines); });
 }
 window.__codefunction={absPath,startLine,openAt,REPO_ROOT,MODS};

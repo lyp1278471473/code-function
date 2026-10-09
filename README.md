@@ -49,7 +49,8 @@ Open `code-function-out/my-repo-map.html` in a browser.
 
 ## Output
 
-- **功能 / Features** — feature → cross-stack code cards; click a line to open it in your editor.
+- **功能 / Features** — feature → cross-stack code cards. Collapsed by default; click a card to
+  expand, then click any code line to open it in your editor.
 - **架构 / Architecture** — module dependency graph layered by dependency depth.
 - **文件 / Explorer** — squarified lines-of-code treemap with directory drill-down.
 - **Facet tabs** — optional, declared in `facets.json`.
